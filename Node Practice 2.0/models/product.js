@@ -1,48 +1,56 @@
-const fs = require('fs');
-const path = require('path');
+const mongodb = require('mongodb');
+const getDb = require('../util/database').getDb;
 
+class Product {
+  constructor(title, price, description, imageUrl) {
+    this.title = title;
+    this.price = price;
+    this.description = description;
+    this.imageUrl = imageUrl;
+  }
 
-const p = path.join(path.dirname(process.mainModule.filename), 'data', 'products.json');
+  save() {
+    const db = getDb();
+    return db
+      .collection('products')
+      .insertOne(this)
+      .then(result => {
+        console.log(result);
+      })
+      .catch(err => {
+        console.log(err);
+      });
+  }
 
-const getProductsFromFile = (cb) => {
-        fs.readFile(p, (err, fileContent) => {
-            if(err) {
-                cb([]);
-            }
-            else{
-                cb(JSON.parse(fileContent));
-            }
-        });
+  static fetchAll() {
+    const db = getDb();
+    return db
+      .collection('products')
+      .find()
+      .toArray()
+      .then(products => {
+        console.log(products);
+        return products;
+      })
+      .catch(err => {
+        console.log(err);
+      });
+  }
+
+  static findById(prodId) {
+    const db = getDb();
+    return db
+      .collection('products')
+      .find({ _id: new mongodb.ObjectId(prodId) })
+      .next()
+      .then(product => {
+        console.log(product);
+        return product;
+      })
+      .catch(err => {
+        console.log(err);
+      });
+  }
 }
 
-module.exports = class Product {
-    constructor(title, imageUrl, description, price) {
-        this.title = title;
-        this.imageUrl = imageUrl;
-        this.description = description;
-        this.price = price; 
-    }
-
-    save() {
-        this.id = Math.random().toString();
-       getProductsFromFile(products => {
-        products.push(this);
-        fs.writeFile(p, JSON.stringify(products), (err) => {
-         console.log(err);
-        });
-       });
-       
-    }
-
-    static fetchAll(cb) {
-        getProductsFromFile(cb);
-    }
-
-
-    static findById(id, cb) {
-        getProductsFromFile(products => {
-            const product = products.find(p => p.id === id);
-            cb(product);
-        });
-    }
-};
+module.exports = Product;
